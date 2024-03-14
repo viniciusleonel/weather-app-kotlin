@@ -13,9 +13,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -34,9 +36,9 @@ import retrofit2.Response
 import service.RetrofitClient
 
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun consultaCidades(navController: NavController) {
-    // State para o texto digitado na caixa de input
     var textoBusca by remember { mutableStateOf("") }
     var cidade by remember { mutableStateOf("") }
     var data by remember { mutableStateOf("") }
@@ -45,7 +47,10 @@ fun consultaCidades(navController: NavController) {
     var tempMinima: Int by remember { mutableStateOf(-100) }
     var tempMaxima: Int by remember { mutableStateOf(100) }
     var probChuva: Int by remember { mutableStateOf(-1) }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
+    // Chaves API para testes: 8ed1e29b - ad9170ec
+    val apiKey = "8ed1e29b"
 
     Column(
         modifier = Modifier
@@ -72,12 +77,11 @@ fun consultaCidades(navController: NavController) {
             textAlign = TextAlign.Center,
             lineHeight = 35.sp,
             modifier = Modifier
-                .padding(top = 50.dp)
+                .padding(top = 10.dp)
         )
 
-        Spacer(modifier = Modifier.height(20.dp)) // Espaçamento
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Caixa de Input
         OutlinedTextField(
             value = textoBusca,
             onValueChange = { textoBusca = it },
@@ -85,15 +89,14 @@ fun consultaCidades(navController: NavController) {
             placeholder = { Text(text = "Exemplo: São Paulo") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { /* Defina a ação do teclado aqui, se necessário */ })
+            keyboardActions = KeyboardActions(onDone = {  })
         )
 
-        Spacer(modifier = Modifier.height(20.dp)) // Espaçamento
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Botão
         Button(
             onClick = {
-                RetrofitClient.instance.getWeather("ad9170ec", textoBusca)
+                RetrofitClient.instance.getWeather(apiKey, textoBusca)
                     .enqueue(object : Callback<WeatherResponse> {
                         override fun onResponse(
                             call: Call<WeatherResponse>,
@@ -101,9 +104,6 @@ fun consultaCidades(navController: NavController) {
                         ) {
                             if (response.isSuccessful) {
                                 val weatherResponse = response.body()
-                                Log.i("Tag", weatherResponse.toString())
-                                val gson = Gson()
-                                val weatherResponseJson = gson.toJson(weatherResponse)
 
                                 if (weatherResponse?.results?.city_name != null) {
                                     cidade = weatherResponse?.results?.city_name
@@ -118,7 +118,7 @@ fun consultaCidades(navController: NavController) {
                                 }
 
                                 if (weatherResponse?.results?.description != null) {
-                                    descricao = weatherResponse?.results?.description
+                                    descricao = "Agora: " + weatherResponse?.results?.description
                                 }
 
                                 var dataAtual = weatherResponse?.results?.forecast?.get(0)
@@ -132,7 +132,6 @@ fun consultaCidades(navController: NavController) {
                                 if (dataAtual?.rain_probability != null) {
                                     probChuva = dataAtual.rain_probability
                                 }
-
                             }
                         }
 
@@ -141,6 +140,7 @@ fun consultaCidades(navController: NavController) {
                         }
                     })
 
+                keyboardController?.hide()
             },
             shape = RoundedCornerShape(40.dp),
             colors = ButtonDefaults.buttonColors(
@@ -149,7 +149,6 @@ fun consultaCidades(navController: NavController) {
             )
 
         ) {
-
             Text(text = "Consultar",
                 fontSize = 24.sp,
                 textAlign = TextAlign.Center,
@@ -185,111 +184,100 @@ fun consultaCidades(navController: NavController) {
                 .fillMaxWidth()
                 .padding(30.dp)
         ) {
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ){
-                Column {
-                    Text(text = cidade,
-                        fontWeight = FontWeight.Bold
+
+            Text(text = cidade,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(text = data,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp)
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Row {
+                if (tempMinima > -100) {
+                    Text("Min: " + tempMinima.toString() + "º ",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp)
+                    var minIcon = chooseImage(tempMinima)
+                    Image(
+                        painter = minIcon,
+                        contentDescription = "Icone do tempo",
+                        modifier = Modifier.size(25.dp)
                     )
-
-                    Spacer(modifier = Modifier.height(5.dp))
-
-                    Row {
-                        if (tempMinima > -100) {
-                            Text("Min: " + tempMinima.toString() + "º", fontWeight = FontWeight.Bold)
-                            var minIcon = chooseImage(tempMinima)
-                            Image(
-                                painter = minIcon,
-                                contentDescription = "Icone do tempo",
-                                modifier = Modifier.size(25.dp)
-                            )
-                        }
-                    }
                 }
-
-                Column {
-                    Text(text = data,
-                        fontWeight = FontWeight.Bold)
-
-                    Spacer(modifier = Modifier.height(5.dp))
-
-                    Row {
-                        if (tempMaxima < 100) {
-                            Text(text = "Max: " + tempMaxima.toString() + "º", fontWeight = FontWeight.Bold)
-                            var maxIcon = chooseImage(tempMaxima)
-                            Image(
-                                painter = maxIcon,
-                                contentDescription = "Icone do tempo",
-                                modifier = Modifier.size(25.dp)
-                            )
-                        }
-                    }
-                }
-
             }
 
             Spacer(modifier = Modifier.height(5.dp))
 
-            Column (
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ){
-                Row {
-                    Text(
-                        text = descricao,
-                        fontWeight = FontWeight.Bold
+            Row {
+                if (tempMaxima < 100) {
+                    Text(text = "Max: " + tempMaxima.toString() + "º ",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp)
+                    var maxIcon = chooseImage(tempMaxima)
+                    Image(
+                        painter = maxIcon,
+                        contentDescription = "Icone do tempo",
+                        modifier = Modifier.size(25.dp)
                     )
-
                 }
+            }
 
-                Spacer(modifier = Modifier.height(5.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
-                Row {
-                    if (tempAtual > -100) {
-                        Text(text = "Temperatura: " + tempAtual.toString() + "º", fontWeight = FontWeight.Bold)
-                        var tempIcon = chooseImage(tempAtual)
-                        Image(
-                            painter = tempIcon,
-                            contentDescription = "Icone do tempo",
-                            modifier = Modifier.size(25.dp)
-                        )
-                    }
+            Row {
+                if (tempAtual > -100) {
+                    Text(text = "Temperatura: " + tempAtual.toString() + "º ",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp)
+                    var tempIcon = chooseImage(tempAtual)
+                    Image(
+                        painter = tempIcon,
+                        contentDescription = "Icone do tempo",
+                        modifier = Modifier.size(25.dp)
+                    )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(5.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = descricao,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
 
-                    if (probChuva > -1) {
-                        Text("Probabilidade de chuva: " + probChuva.toString() + "%",
-                            fontWeight = FontWeight.Bold)
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_chuva_forte), // Substitua com o ID do recurso do seu ícone de temperatura máxima
-                            contentDescription = "probabilidade de chuva",
-                            modifier = Modifier.size(25.dp) // Tamanho do ícone
-                        )
-                    }
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+
+                if (probChuva > -1) {
+                    Text("Probabilidade de chuva: " + probChuva.toString() + "% ",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp)
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_chuva_forte), // Substitua com o ID do recurso do seu ícone de temperatura máxima
+                        contentDescription = "probabilidade de chuva",
+                        modifier = Modifier.size(25.dp) // Tamanho do ícone
+                    )
                 }
             }
 
         }
-
-
     }
 }
 
 @Composable
 fun chooseImage(temp: Int): Painter {
     return when {
-        temp > 30 -> painterResource(id = R.drawable.ic_sol_forte)
+        temp > 27 -> painterResource(id = R.drawable.ic_sol_forte)
         temp > 20 -> painterResource(id = R.drawable.ic_boas_vindas)
         temp > 10 -> painterResource(id = R.drawable.ic_chuva)
         else -> painterResource(id = R.drawable.ic_chuva_forte)
     }
 }
-
-
-
