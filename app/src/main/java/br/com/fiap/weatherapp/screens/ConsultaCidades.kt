@@ -43,6 +43,8 @@ fun consultaCidades(navController: NavController) {
     var cidade by remember { mutableStateOf("") }
     var data by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
+    var vento by remember { mutableStateOf("") }
+    var humidade by remember { mutableStateOf(0) }
     var tempAtual: Int by remember { mutableStateOf(-100) }
     var tempMinima: Int by remember { mutableStateOf(-100) }
     var tempMaxima: Int by remember { mutableStateOf(100) }
@@ -55,7 +57,7 @@ fun consultaCidades(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(30.dp),
+            .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
@@ -65,7 +67,7 @@ fun consultaCidades(navController: NavController) {
             painter = iconPainter,
             contentDescription = "Icone do tempo",
             modifier = Modifier
-                .size(150.dp)
+                .size(120.dp)
         )
 
         // Texto
@@ -77,10 +79,10 @@ fun consultaCidades(navController: NavController) {
             textAlign = TextAlign.Center,
             lineHeight = 35.sp,
             modifier = Modifier
-                .padding(top = 10.dp)
+                .padding(top = 5.dp)
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedTextField(
             value = textoBusca,
@@ -115,6 +117,14 @@ fun consultaCidades(navController: NavController) {
 
                                 if (weatherResponse?.results?.temp != null) {
                                     tempAtual = weatherResponse?.results?.temp
+                                }
+
+                                if (weatherResponse?.results?.wind_speedy != null) {
+                                    vento = "Velocidade do vento: " + weatherResponse?.results?.wind_speedy
+                                }
+
+                                if (weatherResponse?.results?.humidity != null) {
+                                    humidade = weatherResponse?.results?.humidity
                                 }
 
                                 if (weatherResponse?.results?.description != null) {
@@ -246,8 +256,28 @@ fun consultaCidades(navController: NavController) {
 
             Spacer(modifier = Modifier.height(5.dp))
 
+            Row {
+                if (humidade > 0) {
+                    Text(
+                        text = "Humidade do ar: ${humidade}%",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
             Text(
                 text = descricao,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = vento,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
